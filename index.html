@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MT · Morning Time</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg-pink: #ffeaf2;
+      --card-bg: #fff9fb;
+      --pink-main: #ff6fa5;
+      --pink-deep: #e84a86;
+      --text-main: #3b2630;
+      --text-sub: #8a6575;
+      --border-soft: #f5cbd9;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
+      background: linear-gradient(180deg, #ffdce8 0%, var(--bg-pink) 55%, #fff5f8 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-soft);
+      border-radius: 28px;
+      padding: 18px 16px 22px;
+      box-shadow: 0 14px 32px rgba(232, 74, 134, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff0f6;
+      padding: 10px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--border-soft);
+    }
+
+    .brand {
+      font-weight: 800;
+      font-size: 16px;
+      color: var(--pink-deep);
+    }
+
+    .brand span {
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-left: 6px;
+    }
+
+    .clock-box {
+      text-align: right;
+      font-size: 11px;
+      color: var(--text-sub);
+    }
+
+    .clock-box strong {
+      display: block;
+      font-size: 15px;
+      color: var(--text-main);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bundle-bar {
+      background: #fff3f8;
+      border: 1.5px dashed #ff9ec2;
+      border-radius: 14px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--pink-deep);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bundle-bar button {
+      border: none;
+      background: var(--pink-main);
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .room-bar {
+      background: #fff;
+      border: 1.5px solid var(--border-soft);
+      border-radius: 18px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .room-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .room-row input {
+      flex: 1;
+      height: 36px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border-soft);
+      padding: 0 10px;
+      font-size: 13px;
+      background: #fff9fb;
+      color: var(--text-main);
+      outline: none;
+    }
+
+    .room-row button {
+      height: 36px;
+      padding: 0 12px;
+      border: none;
+      border-radius: 12px;
+      background: var(--pink-main);
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .room-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+
+    .notify-banner {
+      display: none;
+      background: #ffe3ee;
+      border: 1.5px solid #ff9ec2;
+      color: #b8255f;
+      border-radius: 16px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .notify-banner.show {
+      display: block;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--pink-deep);
+      margin-bottom: 6px;
+    }
+
+    .cat-picker {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .cat-option {
+      background: #fff;
+      border: 2px solid var(--border-soft);
+      border-radius: 18px;
+      padding: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease;
+    }
+
+    .cat-option.active {
+      border-color: var(--pink-main);
+      background: #fff3f8;
+      transform: translateY(-2px);
+    }
+
+    .cat-option img {
+      width: 74px;
+      height: 74px;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 3px solid #fff;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .cat-option .label {
+      margin-top: 5px;
+      font-size: 12.5px;
+      font-weight: 600;
+    }
+
+    .name-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .name-row input {
+      flex: 1;
+      height: 38px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border-soft);
+      padding: 0 12px;
+      font-size: 13.5px;
+      background: #fff;
+      outline: none;
+    }
+
+    .name-row button {
+      height: 38px;
+      padding: 0 14px;
+      border: none;
+      border-radius: 12px;
+      background: var(--pink-main);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .stage {
+      background: radial-gradient(circle at top, #ffe6f0 0%, #fff7fa 72%);
+      border: 2px solid var(--border-soft);
+      border-radius: 24px;
+      padding: 16px 12px;
+      text-align: center;
+    }
+
+    .cat-title {
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .state-tag {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #ffe0ec;
+      color: var(--pink-deep);
+      font-weight: 600;
+    }
+
+    @keyframes stopMotionWiggle {
+      0%, 100% { transform: rotate(0deg) translateY(0px); }
+      25% { transform: rotate(-2.5deg) translateY(-1px); }
+      50% { transform: rotate(0deg) translateY(0px); }
+      75% { transform: rotate(2.5deg) translateY(-1px); }
+    }
+
+    .sticker-wrap {
+      margin: 16px auto 12px;
+      width: 224px;
+      height: 196px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      position: relative;
+      animation: stopMotionWiggle 1.6s steps(1, end) infinite;
+    }
+
+    .ear-layer {
+      position: absolute;
+      top: 4px;
+      width: 62px;
+      height: 62px;
+      background: #fff;
+      border-radius: 18px;
+      padding: 3px;
+      box-shadow: 0 4px 10px rgba(178, 76, 118, 0.2);
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .ear-layer img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 15px;
+      display: block;
+    }
+
+    .ear-left { left: 10px; transform-origin: 85% 85%; }
+    .ear-right { right: 10px; transform-origin: 15% 85%; }
+
+    .sticker-head {
+      width: 138px;
+      height: 138px;
+      border-radius: 44px;
+      background: #fff;
+      padding: 6px;
+      box-shadow: 0 0 0 4px #ffffff, 0 8px 18px rgba(178, 76, 118, 0.22);
+      position: relative;
+      z-index: 2;
+    }
+
+    .sticker-head img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 38px;
+      display: block;
+    }
+
+    .level-0 .ear-left { transform: rotate(-24deg) translate(-8px, -6px); }
+    .level-0 .ear-right { transform: rotate(24deg) translate(8px, -6px); }
+    .level-1 .ear-left { transform: rotate(8deg) translate(4px, 12px); }
+    .level-1 .ear-right { transform: rotate(-8deg) translate(-4px, 12px); }
+    .level-2 .ear-left { transform: rotate(32deg) translate(10px, 24px); }
+    .level-2 .ear-right { transform: rotate(-32deg) translate(-10px, 24px); }
+    .level-3 .ear-left { transform: rotate(54deg) translate(14px, 34px); }
+    .level-3 .ear-right { transform: rotate(-54deg) translate(-14px, 34px); }
+    .level-3 .sticker-head img { filter: brightness(0.86) contrast(1.04); }
+
+    .bubble {
+      background: #fff;
+      border: 1.5px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .checkin-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn-check {
+      border: none;
+      border-radius: 16px;
+      padding: 12px 10px;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .btn-check small {
+      font-size: 11px;
+      font-weight: 500;
+      opacity: 0.88;
+    }
+
+    .btn-sleep { background: var(--pink-main); color: #fff; }
+    .btn-wake { background: #ff9ec2; color: #fff; }
+    .btn-food {
+      grid-column: 1 / -1;
+      background: #fff0f6;
+      color: var(--pink-deep);
+      border: 1.5px solid #ff9ec2;
+    }
+
+    .btn-check:disabled {
+      background: #e7dbe0;
+      color: #9c8892;
+      border-color: #dfd0d7;
+      cursor: not-allowed;
+    }
+
+    .settlement-card {
+      background: #fff;
+      border: 1.5px solid var(--border-soft);
+      border-radius: 18px;
+      padding: 12px;
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+
+    .settlement-card strong {
+      color: var(--pink-deep);
+    }
+
+    .settlement-actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .settlement-actions button {
+      flex: 1;
+      height: 34px;
+      border: none;
+      border-radius: 10px;
+      background: var(--pink-main);
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">MT <span>Morning Time</span></div>
+      <div class="clock-box">
+        <strong id="bjTime">--:--:--</strong>
+        <span>北京时间 (UTC+8)</span>
+      </div>
+    </div>
+
+    <div class="bundle-bar">
+      <span id="bundleStatus">本地打开后可一键打包图片成单文件</span>
+      <button type="button" onclick="exportSingleFile()">一键生成带图单文件</button>
+    </div>
+
+    <div class="room-bar">
+      <div class="room-row">
+        <input id="roomCodeInput" type="text" placeholder="输入双人联机暗号，例如 MT777" />
+        <button type="button" onclick="joinRoom()">联机同步</button>
+      </div>
+      <div class="room-meta">
+        <span id="roomStatus">房间：未连接</span>
+        <span id="peerStatus">对方：等待加入</span>
+      </div>
+    </div>
+
+    <div class="notify-banner" id="notifyBanner"></div>
+
+    <div>
+      <div class="section-title">1. 选一只你的猫</div>
+      <div class="cat-picker">
+        <div class="cat-option active" data-cat="cat1" onclick="selectCat('cat1')">
+          <img id="thumbCat1" src="1head.jpg" onerror="tryNext(this, ['cat1.jpg','image_62df6c.jpg','cat-left.jpg'])" alt="左边长毛灰虎斑猫" />
+          <div class="label">左边 · 长毛灰猫</div>
+        </div>
+        <div class="cat-option" data-cat="cat2" onclick="selectCat('cat2')">
+          <img id="thumbCat2" src="2head.jpg" onerror="tryNext(this, ['cat2.jpg','image_9660a6.jpg','cat-right.jpg'])" alt="右边短毛棕黑虎斑猫" />
+          <div class="label">右边 · 短毛虎斑猫</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">2. 给它起名字</div>
+      <div class="name-row">
+        <input id="catNameInput" type="text" maxlength="10" placeholder="给你的猫起个名字" />
+        <button type="button" onclick="saveCatName()">确定</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="cat-title" id="displayCatName">小灰</div>
+      <div class="state-tag" id="stateTag">状态：精神满满</div>
+
+      <div class="sticker-wrap level-0" id="stickerWrap">
+        <div class="ear-layer ear-left">
+          <img id="earLeftImg" src="1left.jpg" onerror="tryNext(this, ['cat1-left.jpg','cat2-elft-ear.jpg','cat-left-ear.jpg'])" alt="左耳" />
+        </div>
+        <div class="sticker-head">
+          <img id="mainCatImg" src="1head.jpg" onerror="tryNext(this, ['cat1.jpg','image_62df6c.jpg','cat-left.jpg'])" alt="猫咪贴纸" />
+        </div>
+        <div class="ear-layer ear-right">
+          <img id="earRightImg" src="1right.jpg" onerror="tryNext(this, ['cat1-right.jpg','cat2-right-ear.jpg','cat-right-ear.jpg'])" alt="右耳" />
+        </div>
+      </div>
+
+      <div class="bubble" id="bubbleText">
+        今天也要一起好好睡觉呀，耳朵已经立好等你啦！
+      </div>
+    </div>
+
+    <div class="checkin-grid">
+      <button type="button" class="btn-check btn-sleep" id="sleepBtn" onclick="doSleepCheckin()">
+        <span>🌙 早睡打卡</span>
+        <small id="sleepHint">23:00 前可按</small>
+      </button>
+      <button type="button" class="btn-check btn-wake" id="wakeBtn" onclick="doWakeCheckin()">
+        <span>☀️ 我醒了</span>
+        <small id="wakeHint">07:00 - 23:00 开启</small>
+      </button>
+      <button type="button" class="btn-check btn-food" id="foodBtn" onclick="useAdvanceFood()">
+        <span>🐟 预支猫粮（每周 2 次晚睡机会）</span>
+        <small id="foodHint">本周剩余 2 / 2 次 · 使用后通知对方</small>
+      </button>
+    </div>
+
+    <div class="settlement-card" id="settlementCard">
+      <div><strong>7 天周期进度：</strong><span id="cycleProgress">第 1 / 7 天</span></div>
+      <div><strong>我的战绩：</strong>规律早睡 <span id="myGoodDays">0</span> 天 · 预支猫粮 <span id="myFoodUsed">0</span> 次 · 违规晚睡 <span id="myBadDays">0</span> 次</div>
+      <div><strong>对方战绩：</strong><span id="peerSummary">尚未同步</span></div>
+      <div id="settlementResult" style="margin-top:6px;"></div>
+      <div class="settlement-actions">
+        <button type="button" onclick="settleCycleNow()">查看 / 结算 7 天战绩</button>
+        <button type="button" onclick="startNewCycle()">开启新 7 天周期</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://ietoqrushaxyqdnttjzk.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_TlQK07w_OPGQnyMJnzR_Ag_bmpJ5c7t';
+    const sb = (window.supabase && SUPABASE_URL && SUPABASE_KEY)
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+      : null;
+
+    const CAT_FILES = {
+      cat1: {
+        head: ['1head.jpg', 'cat1.jpg', 'image_62df6c.jpg', 'cat-left.jpg'],
+        leftEar: ['1left.jpg', 'cat1-left.jpg', 'cat2-elft-ear.jpg', 'cat-left-ear.jpg'],
+        rightEar: ['1right.jpg', 'cat1-right.jpg', 'cat2-right-ear.jpg', 'cat-right-ear.jpg']
+      },
+      cat2: {
+        head: ['2head.jpg', 'cat2.jpg', 'image_9660a6.jpg', 'cat-right.jpg'],
+        leftEar: ['2left.jpg', 'cat2-left.jpg', 'cat-left-ear.jpg'],
+        rightEar: ['2right.jpg', 'cat2-right.jpg', 'cat-right-ear.jpg']
+      }
+    };
+
+    function tryNext(imgEl, list) {
+      if (!imgEl || !Array.isArray(list)) return;
+      const idx = Number(imgEl.dataset.idx || 0);
+      if (idx < list.length) {
+        imgEl.dataset.idx = String(idx + 1);
+        imgEl.src = list[idx];
+      }
+    }
+
+    function imageElementToDataUrl(imgEl) {
+      if (!imgEl || !imgEl.src) return '';
+      if (imgEl.src.startsWith('data:')) return imgEl.src;
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = imgEl.naturalWidth || imgEl.width || 200;
+        canvas.height = imgEl.naturalHeight || imgEl.height || 200;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imgEl, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/png');
+      } catch (e) {
+        return imgEl.src;
+      }
+    }
+
+    function exportSingleFile() {
+      const statusEl = document.getElementById('bundleStatus');
+      statusEl.textContent = '正在把已加载的猫头和耳朵打包进单文件…';
+      try {
+        const imgs = Array.from(document.querySelectorAll('img'));
+        for (const img of imgs) {
+          if (img.complete && img.naturalWidth > 0 && img.src) {
+            img.src = imageElementToDataUrl(img);
+          }
+        }
+        const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'MT-MorningTime-bundled.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        statusEl.textContent = '已下载 MT-MorningTime-bundled.html！';
+      } catch (err) {
+        statusEl.textContent = '导出异常：' + (err && err.message ? err.message : err);
+      }
+    }
+
+    const state = {
+      roomCode: '',
+      myId: 'me_' + Math.random().toString(36).slice(2, 7),
+      selectedCat: 'cat1',
+      catName: '小灰',
+      earLevel: 0,
+      cycleDay: 1,
+      goodDays: 0,
+      badDays: 0,
+      advanceFoodLeft: 2,
+      sleptToday: false,
+      wokeToday: false,
+      penalizedTonight: false,
+      lastDateKey: '',
+      peer: null
+    };
+
+    let realtimeChannel = null;
+    let localBroadcast = null;
+
+    function getBeijingNow() {
+      const now = new Date();
+      const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+      return new Date(utcMs + 8 * 3600000);
+    }
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function dateKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+
+    function setImgWithFallback(imgEl, candidates) {
+      if (!imgEl || !candidates || !candidates.length) return;
+      imgEl.dataset.idx = '1';
+      imgEl.onerror = () => tryNext(imgEl, candidates);
+      imgEl.src = candidates[0];
+    }
+
+    function selectCat(which) {
+      state.selectedCat = which;
+      document.querySelectorAll('.cat-option').forEach(el => {
+        el.classList.toggle('active', el.dataset.cat === which);
+      });
+      const files = CAT_FILES[which];
+      if (files) {
+        setImgWithFallback(document.getElementById('mainCatImg'), files.head);
+        setImgWithFallback(document.getElementById('earLeftImg'), files.leftEar);
+        setImgWithFallback(document.getElementById('earRightImg'), files.rightEar);
+      }
+      broadcastRoomState();
+      render();
+    }
+
+    function saveCatName() {
+      const val = document.getElementById('catNameInput').value.trim();
+      if (val) {
+        state.catName = val;
+        document.getElementById('bubbleText').textContent =
+          `好耶！以后我就叫「${val}」啦，一起把这 7 天睡规律吧～`;
+        broadcastRoomState();
+        render();
+      }
+    }
+
+    async function joinRoom() {
+      const code = document.getElementById('roomCodeInput').value.trim();
+      if (!code) return;
+      state.roomCode = code;
+
+      if (localBroadcast) localBroadcast.close();
+      if ('BroadcastChannel' in window) {
+        localBroadcast = new BroadcastChannel('mt_room_' + code);
+        localBroadcast.onmessage = (event) => {
+          const row = event.data;
+          if (row && row.player_id !== state.myId) {
+            handleIncomingPeer(row, true);
+          }
+        };
+      }
+
+      if (!sb) {
+        document.getElementById('roomStatus').textContent = `房间：${code}（本地联机已就绪）`;
+        const cached = localStorage.getItem('mt_room_' + code);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.player_id !== state.myId) handleIncomingPeer(parsed, false);
+        }
+        await broadcastRoomState();
+        return;
+      }
+
+      document.getElementById('roomStatus').textContent = `房间：${code}（云端已联机）`;
+      await broadcastRoomState();
+
+      const { data } = await sb
+        .from('mt_rooms')
+        .select('*')
+        .eq('room_code', code)
+        .neq('player_id', state.myId);
+
+      if (data && data.length > 0) {
+        handleIncomingPeer(data[0], false);
+      } else {
+        document.getElementById('peerStatus').textContent = '对方：等待输入暗号加入…';
+      }
+
+      if (realtimeChannel) sb.removeChannel(realtimeChannel);
+      realtimeChannel = sb
+        .channel('room-' + code)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'mt_rooms', filter: `room_code=eq.${code}` },
+          (payload) => {
+            const row = payload.new;
+            if (row && row.player_id !== state.myId) {
+              handleIncomingPeer(row, true);
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    async function broadcastRoomState(actionNote = '') {
+      if (!state.roomCode) return;
+      const payload = {
+        id: `${state.roomCode}_${state.myId}`,
+        room_code: state.roomCode,
+        player_id: state.myId,
+        cat_name: state.catName,
+        selected_cat: state.selectedCat,
+        ear_level: state.earLevel,
+        good_days: state.goodDays,
+        bad_days: state.badDays,
+        advance_food_left: state.advanceFoodLeft,
+        last_action: actionNote,
+        updated_at: new Date().toISOString()
+      };
+
+      localStorage.setItem('mt_room_' + state.roomCode, JSON.stringify(payload));
+      if (localBroadcast) localBroadcast.postMessage(payload);
+
+      if (sb) {
+        await sb.from('mt_rooms').upsert(payload);
+      }
+    }
+
+    function handleIncomingPeer(row, isRealtimePush) {
+      state.peer = {
+        catName: row.cat_name,
+        earLevel: row.ear_level,
+        goodDays: row.good_days,
+        badDays: row.bad_days,
+        advanceFoodLeft: row.advance_food_left
+      };
+      document.getElementById('peerStatus').textContent = `对方：${row.cat_name}（已联机）`;
+      if (isRealtimePush && row.last_action) {
+        showPeerNotice(row.last_action);
+      }
+      render();
+    }
+
+    function showPeerNotice(text) {
+      const banner = document.getElementById('notifyBanner');
+      banner.textContent = text;
+      banner.classList.add('show');
+    }
+
+    window.addEventListener('storage', (e) => {
+      if (!state.roomCode || e.key !== 'mt_room_' + state.roomCode || !e.newValue) return;
+      const incoming = JSON.parse(e.newValue);
+      if (incoming.player_id === state.myId) return;
+      handleIncomingPeer(incoming, true);
+    });
+
+    function doSleepCheckin() {
+      const bj = getBeijingNow();
+      if (bj.getHours() >= 23 || state.penalizedTonight) return;
+
+      state.sleptToday = true;
+      state.earLevel = 0;
+      state.goodDays += 1;
+      document.getElementById('bubbleText').textContent =
+        `谢谢你的早睡哦，让我的耳朵又精神起来啦！晚安～`;
+      broadcastRoomState(`🌙 通知：${state.catName} 刚刚完成了早睡打卡，耳朵立起来啦！`);
+      render();
+    }
+
+    function doWakeCheckin() {
+      const bj = getBeijingNow();
+      const h = bj.getHours();
+      if (h < 7 || h >= 23) return;
+
+      state.wokeToday = true;
+      document.getElementById('bubbleText').textContent =
+        `早安！${state.catName}已经起床等你啦，今晚 23:00 前记得陪我早睡打卡哦～`;
+      broadcastRoomState(`☀️ 通知：${state.catName} 刚刚起床打卡啦！`);
+      render();
+    }
+
+    function useAdvanceFood() {
+      if (state.advanceFoodLeft <= 0) return;
+      state.advanceFoodLeft -= 1;
+      state.sleptToday = true;
+      state.penalizedTonight = true;
+      state.earLevel = Math.min(3, state.earLevel + 1);
+      document.getElementById('bubbleText').textContent =
+        `呜……用了 1 颗「预支猫粮」晚睡，${state.catName}的耳朵先垂下来一格，明天一定要早睡补回来！`;
+      const notice = `🐟 通知：${state.catName} 刚刚使用了「预支猫粮」晚睡（本周还剩 ${state.advanceFoodLeft} 次）！`;
+      if (state.roomCode) showPeerNotice(notice);
+      broadcastRoomState(notice);
+      render();
+    }
+
+    function settleCycleNow() {
+      const myScore = state.goodDays * 10 - (2 - state.advanceFoodLeft) * 3 - state.badDays * 8;
+      const peer = state.peer;
+      let result = `本轮目前得分：${state.catName} ${myScore} 分（规律早睡 ${state.goodDays} 天）。`;
+      if (peer) {
+        const peerScore = peer.goodDays * 10 - (2 - peer.advanceFoodLeft) * 3 - peer.badDays * 8;
+        if (myScore > peerScore) {
+          result = `🏆 7 天结算：${state.catName}（${myScore} 分）领先 ${peer.catName}（${peerScore} 分），睡眠更规律！`;
+        } else if (peerScore > myScore) {
+          result = `🏆 7 天结算：${peer.catName}（${peerScore} 分）领先 ${state.catName}（${myScore} 分），对方更规律！`;
+        } else {
+          result = `🤝 7 天结算：双方打成平手（${myScore} 分），都很会睡！`;
+        }
+      }
+      document.getElementById('settlementResult').textContent = result;
+    }
+
+    function startNewCycle() {
+      state.cycleDay = 1;
+      state.goodDays = 0;
+      state.badDays = 0;
+      state.advanceFoodLeft = 2;
+      state.earLevel = 0;
+      state.sleptToday = false;
+      state.wokeToday = false;
+      state.penalizedTonight = false;
+      document.getElementById('settlementResult').textContent = '已开启新的 7 天周期，预支猫粮已补满 2 颗！';
+      broadcastRoomState(`✨ ${state.catName} 开启了新的 7 天睡眠挑战！`);
+      render();
+    }
+
+    function syncByBeijingTime() {
+      const bj = getBeijingNow();
+      const h = bj.getHours();
+      const m = bj.getMinutes();
+      const s = bj.getSeconds();
+      const todayKey = dateKey(bj);
+
+      document.getElementById('bjTime').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+
+      if (state.lastDateKey && state.lastDateKey !== todayKey) {
+        state.sleptToday = false;
+        state.wokeToday = false;
+        state.penalizedTonight = false;
+        state.cycleDay = state.cycleDay >= 7 ? 7 : state.cycleDay + 1;
+        if (state.cycleDay === 7) settleCycleNow();
+      }
+      state.lastDateKey = todayKey;
+
+      if (h >= 23 && !state.sleptToday && !state.penalizedTonight) {
+        state.penalizedTonight = true;
+        let notice = '';
+        if (state.advanceFoodLeft > 0) {
+          state.advanceFoodLeft -= 1;
+          state.earLevel = Math.min(3, state.earLevel + 1);
+          document.getElementById('bubbleText').textContent =
+            `过 23:00 啦，自动消耗 1 颗「预支猫粮」抵消今晚晚睡，耳朵降了一格。`;
+          notice = `🐟 通知：${state.catName} 超时晚睡，自动用了 1 颗「预支猫粮」！`;
+        } else {
+          state.badDays += 1;
+          state.earLevel = Math.min(3, state.earLevel + 1);
+          document.getElementById('bubbleText').textContent =
+            `过 23:00 啦，预支猫粮也用完了，判为晚睡，${state.catName}的耳朵降了一格。`;
+          notice = `⚠️ 通知：${state.catName} 晚睡且猫粮已用完，耳朵降了一格！`;
+        }
+        if (state.roomCode) showPeerNotice(notice);
+        broadcastRoomState(notice);
+      }
+
+      document.getElementById('sleepBtn').disabled = (h >= 23 || state.penalizedTonight);
+      document.getElementById('sleepHint').textContent =
+        (h >= 23 || state.penalizedTonight) ? '已过 23:00 · 锁定' : (state.sleptToday ? '今晚已打卡 ✓' : '23:00 前可按');
+
+      document.getElementById('wakeBtn').disabled = !(h >= 7 && h < 23);
+      document.getElementById('wakeHint').textContent =
+        (h >= 7 && h < 23) ? (state.wokeToday ? '今日已醒来 ✓' : '07:00 - 23:00 可按') : '07:00 后开启';
+
+      document.getElementById('foodBtn').disabled = state.advanceFoodLeft <= 0 || state.sleptToday;
+      document.getElementById('foodHint').textContent =
+        `本周剩余 ${state.advanceFoodLeft} / 2 次 · 使用后通知对方`;
+
+      render();
+    }
+
+    function render() {
+      document.getElementById('stickerWrap').className = `sticker-wrap level-${state.earLevel}`;
+      document.getElementById('displayCatName').textContent = state.catName;
+
+      const tags = [
+        '状态：耳朵立起 · 精神满满',
+        '状态：轻微垂耳 · 稍微有点困',
+        '状态：明显垂耳 · 记得早睡',
+        '状态：晚睡降格 · 耳朵耷拉中'
+      ];
+      document.getElementById('stateTag').textContent = tags[state.earLevel];
+      document.getElementById('cycleProgress').textContent = `第 ${state.cycleDay} / 7 天`;
+      document.getElementById('myGoodDays').textContent = state.goodDays;
+      document.getElementById('myFoodUsed').textContent = 2 - state.advanceFoodLeft;
+      document.getElementById('myBadDays').textContent = state.badDays;
+
+      if (state.peer) {
+        document.getElementById('peerSummary').textContent =
+          `${state.peer.catName} · 规律 ${state.peer.goodDays} 天 · 剩猫粮 ${state.peer.advanceFoodLeft} 次 · 晚睡 ${state.peer.badDays} 次`;
+      }
+    }
+
+    document.getElementById('catNameInput').value = state.catName;
+    syncByBeijingTime();
+    setInterval(syncByBeijingTime, 1000);
+  </script>
+</body>
+</html>
